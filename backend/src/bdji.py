@@ -12,6 +12,7 @@ from google import genai
 import base64
 # os for filepaths
 import os
+import time
 
 
 
@@ -126,7 +127,7 @@ while count > 0:
         current_track_artist=current_track['item']['artists'][0]['name']
     
         time_left = calculate_time_left(current_track)
-    
+    time.sleep(1)
     # when time left reaches 25 seconds, search for new song to add to queue based on user's mood
     if time_left == 25:
         recently_played.append(current_track_name + " by " + current_track_artist)
