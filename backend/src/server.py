@@ -85,12 +85,12 @@ class DJBrain(BaseHTTPRequestHandler):
                 stream_thread = threading.Thread(target=worker, daemon=True) # runs Stream quietly in the background
                 stream_thread.start()
 
-                self.send_response(200) # send the okay to start
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
+            self.send_response(200) # send the okay to start
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
 
-                with state_lock:
-                    self.wfile.write(json.dumps(state).encode('utf-8'))
+            with state_lock:
+                self.wfile.write(json.dumps(state).encode('utf-8'))
 
         elif self.path == '/api/stop':
             with state_lock:

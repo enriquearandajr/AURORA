@@ -12,14 +12,24 @@ from google import genai
 import base64
 # os for filepaths
 import os
+import sys
 # time for spotify loop
 import time
+
+import torch
 
 # get current path
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # path to DB logo
 IMAGE_PATH = os.path.abspath(os.path.join(CURRENT_DIR,'../../frontend/media/db-black-tiny.jpg'))
+
+TOOLS_PATH = os.path.abspath(os.path.join(CURRENT_DIR,'../tools'))
+sys.path.append(TOOLS_PATH)
+
+from mrs_utils import recommend_song, get_uri
+
+
 
 # import secrets
 secrets_path = os.path.abspath(os.path.join(CURRENT_DIR, '../../.env.dev')) # to get the env dev file
@@ -43,17 +53,23 @@ client = genai.Client(api_key=secrets['GEMINI_API_KEY'])
 # counter for how many songs to be added to queue
 # subtracts by 1 after every song
 count = 15 # Gemini API only allows up to 20 requests per day, 1 is needed for playlist title
-# list of recently played songs for Gemini to avoid
-recently_played = []
+stream_is_playing = True # to be implemented as a button
 
-stream_id = ""
+recently_played = [] # exclusion list
+
+stream_id = ""  # for playlist
 # time left variable initialization
 time_left = 0
 
+arousal = 0
+pleasure = 0
+
+#DEPRECATED
 def prompt_user_state(state):
     return f"User is feeling {state} to the current song."
 
 # get song uri function to add song into queue
+# NO LONGER NEEDED AS DATASET includes URI, replaced with get uri
 def get_song_uri(song_title, song_artist):
     query = "track: "+song_title+" artist: " + song_artist
     # Antigravity Agent suggested to add market variable to prevent unplayable tracks from being added
@@ -73,6 +89,7 @@ def calculate_time_left(track):
 
 # current music reccomendation system
 # run song suggestion prompt
+# no longer needed
 def run_prompt(prompt):
     interaction = client.interactions.create(
         model = 'gemini-3-flash', # change with gemini-2.5-flash or gemini-3.5-flash for more requests,
@@ -101,14 +118,17 @@ def spotify_playlist_creation():
     return new_playlist["id"]
 
 def run_stream(status_callback=None, stop_event=None):
-    global count, recently_played, time_left, stream_id
+    global count, recently_played, time_left, stream_id, stream_is_playing
 
     # reset variables for new Stream
     count = 15
     recently_played = []
     time_left = 0
-    stream_id = None
-    queued_for_track_id = None
+    stream_id = ""
+    stream_is_playing=True # to control Stream
+    queued_for_track_id = None 
+    arousal = 50
+    pleasure = 75
 
     if status_callback:
         status_callback({
@@ -128,10 +148,11 @@ def run_stream(status_callback=None, stop_event=None):
         if current_playing and current_playing.get('is_playing'):
             current_track_name = current_playing['item']['name']
             current_track_artist = current_playing['item']['artists'][0]['name']
-            first_song_uri = get_song_uri(current_track_name, current_track_artist)
+            first_song_uri = get_uri(current_track_name)
+
             if first_song_uri:
                 song_to_add.append(first_song_uri)
-                recently_played.append(current_track_name+ " by " + current_track_artist) # might need to change to song that actually plays vs wants to play since it leads to duplicates
+                recently_played.append(current_track_name+ " - " + current_track_artist) # might need to change to song that actually plays vs wants to play since it leads to duplicates
     except Exception as e:
         print(f"Error checking currently playing track: {e}")
 
@@ -174,7 +195,7 @@ def run_stream(status_callback=None, stop_event=None):
         })
 
         # Main Polling Loop 
-        while count > 0:
+        while count > 0 and stream_is_playing:
             if stop_event and stop_event.is_set():
                 print("Stopping Stream...")
                 break
@@ -185,8 +206,8 @@ def run_stream(status_callback=None, stop_event=None):
                     current_track_name = current_track['item']['name']
                     current_track_artist = current_track['item']['artists'][0]['name']
                     current_track_id = current_track['item']['id']
-                    current_song_name = current_track_name + " by " + current_track_artist # title + artist
-
+                    current_song_name = current_track_name + " - " + current_track_artist # title + artist
+                    time_left = calculate_time_left(current_track)
                     # update status callback on currently playing song
                     if status_callback:
                         status_callback({
@@ -215,45 +236,42 @@ def run_stream(status_callback=None, stop_event=None):
                         if current_song_name not in recently_played:
                             recently_played.append(current_song_name)
                             
-                            global client
-                            client = genai.Client(api_key=secrets['GEMINI_API_KEY'])
-                            state_prompt = prompt_user_state('pleasure')
-                            prompt = f"{state_prompt} Find a song that matches user state and is similar to {current_track_name} by {current_track_artist}.{camelot_prompt}**Important**: Reply with only the song name and artist of the song in this format: Title: <insert title>\n Artist: <insert artist name>. Verify the song is not part of this list, if it is try again: {recently_played}."
+                        # Recommender System Call
+                        rec_df, rec_queue = recommend_song(current_track_name, current_track_artist, arousal, pleasure, recently_played, 10)
+                        
+                        if rec_queue:
+                            upcoming_song_uri = rec_queue[0]
+                            new_song_title = rec_df.iloc[0]['name']
+                            new_song_artist = rec_df.iloc[0]['artist']
+                            recommended_song_name = f"{new_song_title} - {new_song_artist}"
                             
-                            output = run_prompt(prompt)
-                            new_song_artist = output.split(':')[-1].strip()
-                            new_song_title = output.split(':')[1].split('Artist')[0].strip()
-
-                            upcoming_song_uri = get_song_uri(new_song_title, new_song_artist)
-                            if upcoming_song_uri:
-                                sp.add_to_queue(uri=upcoming_song_uri)
-                                song_to_add.clear()
-                                song_to_add.append(upcoming_song_uri)
-                                sp.playlist_add_items(stream_id, song_to_add)
-
-                                recommended_song_name = f"{new_song_title} by {new_song_artist}"
-                                recently_played.append(recommended_song_name)
-                                print(f"Added {recommended_song_name} to queue!")
-                                count -=1
-
-                                if status_callback:
-                                    status_callback({
-                                        "status":"running",
-                                        "message":f"Added recommended song: {recommended_song_name}",
-                                        "recently_played": recently_played,
-                                        "current_song":current_song_name,
-                                        "playlist_id":stream_id
-                                    })
-                                else:
-                                    print(f"Could not find a playable song on Spotify for: {new_song_title} by {new_song_artist}")
-                                    if status_callback:
-                                        status_callback({
-                                            "status":"running",
-                                            "message":f"Could not find a playable song on Spotify for: {new_song_title} by {new_song_artist}",
-                                            "recently_played":recently_played,
-                                            "current_song":current_song_name,
-                                            "playlist_id":stream_id
-                                        })
+                            sp.add_to_queue(uri=upcoming_song_uri)
+                            song_to_add.clear()
+                            song_to_add.append(upcoming_song_uri)
+                            sp.playlist_add_items(stream_id, song_to_add)
+                            
+                            recently_played.append(recommended_song_name)
+                            print(f"Added {recommended_song_name} to queue!")
+                            count -= 1
+                            
+                            if status_callback:
+                                status_callback({
+                                    "status":"running",
+                                    "message":f"Added recommended song: {recommended_song_name}",
+                                    "recently_played": recently_played,
+                                    "current_song":current_song_name,
+                                    "playlist_id":stream_id
+                                })
+                        else:
+                            print(f"Could not find a playable song on Spotify for recommendation.")
+                            if status_callback:
+                                status_callback({
+                                    "status":"running",
+                                    "message":"Could not find a playable song on Spotify for recommendation",
+                                    "recently_played":recently_played,
+                                    "current_song":current_song_name,
+                                    "playlist_id":stream_id
+                                })
                 # if spotify is active but no track is playing, needs to be updated
                 else:
                     if status_callback:
