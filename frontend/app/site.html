@@ -80,10 +80,10 @@
         </div>
 
         <script>
-            const API_BASE = window.location.origin.includes('localhost:5005') 
-                ? window.location.origin 
-                : 'http://localhost:5005';
-                
+            const API_BASE = window.location.origin.includes('5005')
+                ? window.location.origin
+                : 'http://127.0.0.1:5005';
+
             let pollingInterval = null;
             let config = null;
             let currentSessionId = null;
@@ -230,7 +230,7 @@
                         localStorage.setItem('spotify_access_token', data.access_token);
                         localStorage.setItem('spotify_refresh_token', data.refresh_token);
                         localStorage.setItem('spotify_expires_at', Date.now() + data.expires_in * 1000);
-                        
+
                         await fetchSpotifyUserProfile(data.access_token);
                     } else {
                         console.error("Failed to exchange token:", await response.text());
@@ -250,7 +250,7 @@
                 if (token) {
                     currentSessionId = localStorage.getItem('spotify_user_id');
                     const displayName = localStorage.getItem('spotify_display_name') || currentSessionId;
-                    
+
                     if (btnConnect) btnConnect.classList.add('hidden');
                     if (btnStart) btnStart.classList.remove('hidden');
 
@@ -312,7 +312,7 @@
                     }
 
                     if (!isRunning) {
-                        const res = await fetch(`${API_BASE}/api/start`, { 
+                        const res = await fetch(`${API_BASE}/api/start`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -324,7 +324,7 @@
                         const data = await res.json();
                         updateUI(data);
                     } else {
-                        const res = await fetch(`${API_BASE}/api/stop`, { 
+                        const res = await fetch(`${API_BASE}/api/stop`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -343,7 +343,7 @@
             function updateHistoryList(songs) {
                 const listContainer = document.getElementById('song-list');
                 if (!listContainer) return;
-                listContainer.innerHTML = ''; 
+                listContainer.innerHTML = '';
 
                 if (songs && songs.length > 0) {
                     songs.forEach((song) => {
