@@ -1,37 +1,65 @@
 import json # for output
 import threading 
+import time
+import urllib.parse
+import os
 from http.server import HTTPServer, BaseHTTPRequestHandler # for communication with website
 #Python's BaseHTTPRequestHandler processes incoming HTTP requests and dispatches them to specific handler methods
-from main import run_stream # run stream function that i developed in main
+from main import run_stream, secrets # run stream function and secrets that i developed in main
 
-# shared state across web server and DJ background thread
-state = {
-    "status": "stopped", # could be either stopped, initializing, running, completing, or error
-    "message": "Server is ready...",
-    "recently_played": [],
-    "current_song": None,
-    "playlist_id": None
-}
+# Paths relative to this file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SITE_HTML_PATH = os.path.abspath(os.path.join(BASE_DIR, '../../frontend/app/site.html'))
+MEDIA_DIR = os.path.abspath(os.path.join(BASE_DIR, '../../frontend/media'))
 
-state_lock = threading.Lock()
-stop_event = threading.Event()
-stream_thread = None
+# sessions dictionary to support multiple users running their streams concurrently
+# format: { session_id: { "status": ..., "message": ..., "recently_played": ..., "current_song": ..., "playlist_id": ..., "stop_event": threading.Event(), "stream_thread": threading.Thread(), "last_active": float } }
+sessions = {}
+sessions_lock = threading.Lock()
 
-def update_state(new_state):
-    # Callback function passed to run_stream to update global server state
-    with state_lock: # used for automatic resource management, safe, MUTEX
-        state.update(new_state)
+def get_session(session_id):
+    with sessions_lock:
+        if session_id not in sessions:
+            sessions[session_id] = {
+                "status": "stopped",
+                "message": "Server is ready...",
+                "recently_played": [],
+                "current_song": None,
+                "playlist_id": None,
+                "stop_event": threading.Event(),
+                "stream_thread": None,
+                "last_active": time.time()
+            }
+        else:
+            sessions[session_id]["last_active"] = time.time()
+        return sessions[session_id]
 
-def worker():
+def update_session_state(session_id, new_state):
+    with sessions_lock:
+        if session_id in sessions:
+            for k, v in new_state.items():
+                if k not in ["stop_event", "stream_thread"]:
+                    sessions[session_id][k] = v
+            sessions[session_id]["last_active"] = time.time()
+
+def worker(session_id, access_token, refresh_token, session_stop_event):
     # worker function for DJ background thread
     try:
-        # status callback refers to the code progress, views the updated state
-        run_stream(status_callback=update_state, stop_event=stop_event)
+        def callback(new_state):
+            update_session_state(session_id, new_state)
+
+        run_stream(
+            session_id=session_id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            status_callback=callback,
+            stop_event=session_stop_event
+        )
     except Exception as e:
-        with state_lock:
-            # presents error and sets state to error
-            state["status"] = "error"
-            state["message"] = f"Critical background thread error: {e}"
+        with sessions_lock:
+            if session_id in sessions:
+                sessions[session_id]["status"] = "error"
+                sessions[session_id]["message"] = f"Critical background thread error: {e}"
 
 class DJBrain(BaseHTTPRequestHandler): 
     def end_headers(self):
@@ -46,71 +74,186 @@ class DJBrain(BaseHTTPRequestHandler):
         self.send_response(200) # Send 200=OKAY to HTTPS
         self.end_headers()
     
-    # retrieves data
+    # retrieves data & serves static pages
     def do_GET(self):
-        if self.path == '/api/status':
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == '/' or path == '/index.html' or path == '/site.html':
+            try:
+                with open(SITE_HTML_PATH, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html')
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(f"Error loading UI: {e}".encode('utf-8'))
+        elif path.startswith('/media/'):
+            filename = path[7:] # strip '/media/'
+            filename = os.path.basename(filename) # prevent directory traversal
+            file_path = os.path.join(MEDIA_DIR, filename)
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'rb') as f:
+                        content = f.read()
+                    self.send_response(200)
+                    if file_path.endswith('.jpg') or file_path.endswith('.jpeg'):
+                        self.send_header('Content-Type', 'image/jpeg')
+                    elif file_path.endswith('.png'):
+                        self.send_header('Content-Type', 'image/png')
+                    else:
+                        self.send_header('Content-Type', 'application/octet-stream')
+                    self.end_headers()
+                    self.wfile.write(content)
+                except Exception as e:
+                    self.send_response(500)
+                    self.end_headers()
+                    self.wfile.write(b"Error reading file")
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Media Not Found")
+        elif path == '/api/config':
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            with state_lock:
-                self.wfile.write(json.dumps(state).encode('utf-8')) # write state of server
-        else:
-            self.send_response(404) # error
+            config_data = {
+                "spotify_client_id": secrets.get('SPOTIFY_CLIENT_ID'),
+                "spotify_redirect_uri": secrets.get('SPOTIFY_REDIRECT_URI')
+            }
+            self.wfile.write(json.dumps(config_data).encode('utf-8'))
+        elif path == '/api/status':
+            query = urllib.parse.parse_qs(parsed_url.query)
+            session_id = query.get('session_id', [None])[0]
+            if not session_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing session_id parameter"}).encode('utf-8'))
+                return
+
+            session = get_session(session_id)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            self.wfile.write(b"Not Found") # b is for buffer
             
-    # start and stop controls
+            serializable_state = {
+                "status": session["status"],
+                "message": session["message"],
+                "recently_played": session["recently_played"],
+                "current_song": session["current_song"],
+                "playlist_id": session["playlist_id"]
+            }
+            self.wfile.write(json.dumps(serializable_state).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not Found")
+            
+    # start and stop controls (expect JSON bodies with session_id)
     def do_POST(self):
-        global stream_thread
-        if self.path == '/api/start':
-            with state_lock:
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        content_length = int(self.headers.get('Content-Length', 0))
+        body_data = {}
+        if content_length > 0:
+            try:
+                body_data = json.loads(self.rfile.read(content_length).decode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(b"Invalid JSON body")
+                return
+
+        if path == '/api/start':
+            session_id = body_data.get("session_id")
+            access_token = body_data.get("access_token")
+            refresh_token = body_data.get("refresh_token")
+
+            if not session_id or not access_token:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing session_id or access_token"}).encode('utf-8'))
+                return
+
+            session = get_session(session_id)
+            with sessions_lock:
                 #Don't allow starting if initializing, running or completing
-                if state["status"] in ["initializing", "running", "completing"]:
-                    self.send_response(400) # bad request, stream is already running
+                if session["status"] in ["initializing", "running", "completing"]:
+                    self.send_response(400)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error":"Stream is already running"}).encode('utf-8'))
+                    self.wfile.write(json.dumps({"error":"Stream is already running for this session"}).encode('utf-8'))
                     return
                 
                 # Allow starting if stopped, error, or complete
-                # Set up thread control and initial state
-                stop_event.clear()
-                state["status"] = "initializing"
-                state["message"] = "Initializing Stream..."
-                state["recently_played"] = []
-                state['current_song'] = None
-                state['playlist_id'] = None
+                session["stop_event"].clear()
+                session["status"] = "initializing"
+                session["message"] = "Initializing Stream..."
+                session["recently_played"] = []
+                session['current_song'] = None
+                session['playlist_id'] = None
 
-                # spawns background thread
-                stream_thread = threading.Thread(target=worker, daemon=True) # runs Stream quietly in the background
-                stream_thread.start()
-
-            self.send_response(200) # send the okay to start
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-
-            with state_lock:
-                self.wfile.write(json.dumps(state).encode('utf-8'))
-
-        elif self.path == '/api/stop':
-            with state_lock:
-                # If Stream is not even Running then send error for wanting to stop
-                if state["status"] not in ["initializing", "running", "completing"]:
-                    self.send_response(400) # error
-                    self.send_header('Content-Type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps({"error":"Stream is not running"}).encode('utf-8'))
-                    return
-                
-                # Signal stop 
-                stop_event.set()
-                state["message"] = "Requesting Stream to stop..."
+                # spawn background thread for this specific user
+                t = threading.Thread(
+                    target=worker, 
+                    args=(session_id, access_token, refresh_token, session["stop_event"]), 
+                    daemon=True
+                )
+                session["stream_thread"] = t
+                t.start()
 
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-            with state_lock:
-                self.wfile.write(json.dumps(state).encode('utf-8'))
+
+            serializable_state = {
+                "status": session["status"],
+                "message": session["message"],
+                "recently_played": session["recently_played"],
+                "current_song": session["current_song"],
+                "playlist_id": session["playlist_id"]
+            }
+            self.wfile.write(json.dumps(serializable_state).encode('utf-8'))
+
+        elif path == '/api/stop':
+            session_id = body_data.get("session_id")
+            if not session_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing session_id"}).encode('utf-8'))
+                return
+
+            session = get_session(session_id)
+            with sessions_lock:
+                if session["status"] not in ["initializing", "running", "completing"]:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error":"Stream is not running for this session"}).encode('utf-8'))
+                    return
+                
+                session["stop_event"].set()
+                session["message"] = "Requesting Stream to stop..."
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            
+            serializable_state = {
+                "status": session["status"],
+                "message": session["message"],
+                "recently_played": session["recently_played"],
+                "current_song": session["current_song"],
+                "playlist_id": session["playlist_id"]
+            }
+            self.wfile.write(json.dumps(serializable_state).encode('utf-8'))
 
         else:
             self.send_response(404)
@@ -126,7 +269,7 @@ def run(server_class=HTTPServer, handler_class=DJBrain, port=5005): # port 5005 
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("\nStopping server.")
-        httpd.server_close() # dont close server until Keyboard Interrupt to shut it down!!!
+        httpd.server_close()
 
 if __name__ == '__main__':
     run()
