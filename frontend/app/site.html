@@ -6,89 +6,178 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Brain DJ Interface: Remixed</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include ONNX Runtime Web for browser-side ML inference -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="braindj_sdk.js"></script>
     <style>
-        /* Include Styling here
-        format:*/
-
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #000000, #25244d);
             background-size: 100% 100%;
-            /* adjusts height to make the gradient stretch and transition smoothly*/
             background-repeat: no-repeat;
-            /*makes sure it doesn't repeat*/
             min-height: 100vh;
-            /*ensures body is at least viewport height*/
-            /*
-            margin
-            padding
-            line-height
-            scroll-height
-            */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .title {
             color: white;
             font-weight: bold;
-            font-size: 96px;
+            font-size: 64px;
+            line-height: 1.1;
         }
 
         .subtitle {
-            color: white;
-            font-size: 32px;
+            color: #b4b3d8;
+            font-size: 24px;
+            margin-top: 10px;
         }
     </style>
 </head>
 
-<body>
-    <section id="hero" class="p-8">
-        <!--   <div class="container">  -->
+<body class="p-6">
+    <section id="hero" class="w-full max-w-2xl mx-auto flex flex-col items-center justify-center text-center">
         <h1 class="title">Brain DJ Interface: Remixed</h1>
         <h2 class="subtitle">Produced by Decoded Brain at UC San Diego</h2>
 
-        <div class="mt-6 flex flex-row gap-4">
-            <!-- Spotify Login Button -->
-            <button id="connect-button-control"
-                class="hidden relative inline-flex rounded-full items-center justify-center p-0.5 overflow-hidden text-sm font-medium text-heading rounded-base group bg-gradient-to-br from-green-500 to-emerald-600 group-hover:from-green-500 group-hover:to-emerald-600 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800">
-                <span
-                    class="relative px-4 py-2.5 transition-all ease-in duration-75 bg-neutral-primary-soft rounded-base group-hover:bg-transparent group-hover:dark:bg-transparent leading-5 text-white">
-                    Connect to Spotify
-                </span>
-            </button>
-
-            <!-- Stream Control Button -->
-            <button id="start-button-control"
-                class="hidden relative inline-flex rounded-full items-center justify-center p-0.5 overflow-hidden text-sm font-medium text-heading rounded-base group bg-gradient-to-br from-blue-500 to-purple-500 group-hover:from-blue-500 group-hover:to-purple-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-cyan-200 dark:focus:ring-cyan-800">
-                <span
-                    class="relative px-4 py-2.5 transition-all ease-in duration-75 bg-neutral-primary-soft rounded-base group-hover:bg-transparent group-hover:dark:bg-transparent leading-5 text-white">
-                    Start your Stream
-                </span>
-            </button>
+        <!-- ML Model Loading Screen -->
+        <div id="ml-loading-overlay"
+            class="mt-8 p-6 bg-slate-900/90 rounded-2xl text-white w-full max-w-md border border-slate-800 shadow-xl backdrop-blur-sm">
+            <h4 class="text-md font-semibold mb-2" id="loading-status-text">Initializing AI Model...</h4>
+            <div class="w-full bg-slate-800 rounded-full h-2.5 mb-2">
+                <div id="loading-progress-bar" class="bg-gradient-to-r from-cyan-400 to-purple-500 h-2.5 rounded-full"
+                    style="width: 0%"></div>
+            </div>
+            <span class="text-xs text-gray-400">Loading neural autoencoder and song catalog features directly to your
+                device (approx. 26 MB).</span>
         </div>
 
-        <!-- Stream Status Title -->
-        <div class="mt-6 text-white">
-            <h3 id="status-title" class="text-xl font-semibold">Offline</h3>
-        </div>
+        <div id="main-controls-container" class="hidden w-full flex flex-col items-center">
 
-        <!--Recently Played-->
-        <div class="mt-8 text-white w-full max-w-lg">
-            <h4 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Your Stream</h4>
-            <div id="song-list" class="grid grid-cols-1 gap-2">
-                <div class="text-gray-400">No songs yet.</div>
+            <div class="mt-8 flex flex-row justify-center gap-4">
+                <!-- Spotify Login Button -->
+                <button id="connect-button-control"
+                    class="hidden relative inline-flex rounded-full items-center justify-center p-0.5 overflow-hidden text-sm font-medium text-heading rounded-base group bg-gradient-to-br from-green-500 to-emerald-600 group-hover:from-green-500 group-hover:to-emerald-600 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-green-200 dark:focus:ring-green-800">
+                    <span
+                        class="relative px-6 py-3 transition-all ease-in duration-75 bg-neutral-primary-soft rounded-base group-hover:bg-transparent group-hover:dark:bg-transparent leading-5 text-white font-semibold">
+                        Connect to Spotify
+                    </span>
+                </button>
+
+                <!-- Stream Control Button -->
+                <button id="start-button-control"
+                    class="hidden relative inline-flex rounded-full items-center justify-center p-0.5 overflow-hidden text-sm font-medium text-heading rounded-base group bg-gradient-to-br from-cyan-500 to-purple-500 group-hover:from-cyan-500 group-hover:to-purple-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-cyan-200 dark:focus:ring-cyan-800">
+                    <span
+                        class="relative px-6 py-3 transition-all ease-in duration-75 bg-neutral-primary-soft rounded-base group-hover:bg-transparent group-hover:dark:bg-transparent leading-5 text-white font-semibold">
+                        Start your Stream
+                    </span>
+                </button>
+            </div>
+
+            <!-- Simulated EEG Controls (2D Circumplex coordinate grid) -->
+            <div id="eeg-controls"
+                class="mt-8 p-6 bg-slate-900/80 rounded-2xl text-white w-full max-w-md border border-slate-800 shadow-xl backdrop-blur-sm">
+                <h4
+                    class="text-md font-bold mb-3 border-b border-slate-800 pb-2 uppercase tracking-wider text-slate-400 text-xs">
+                    Simulated Brainwave Inputs (EEG)</h4>
+
+                <!-- Coordinate Readout -->
+                <div
+                    class="flex justify-around text-xs font-semibold mb-5 bg-slate-950/50 py-2 rounded-lg border border-slate-900/50">
+                    <div>
+                        <span class="text-slate-400">Arousal (Y):</span>
+                        <span id="arousal-val" class="font-bold text-cyan-400">0%</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">Pleasure (X):</span>
+                        <span id="pleasure-val" class="font-bold text-purple-400">50%</span>
+                    </div>
+                </div>
+
+                <!-- 2D Coordinate Grid -->
+                <div class="relative w-64 h-64 bg-slate-950 rounded-xl border border-slate-800/80 cursor-pointer overflow-hidden shadow-inner mx-auto select-none"
+                    id="pad-container">
+                    <!-- Crosshair Grid Lines -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-full h-px bg-slate-800/30"></div>
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="w-px h-full bg-slate-800/30"></div>
+                    </div>
+
+                    <!-- Axis Labels -->
+                    <div
+                        class="absolute top-2 left-0 right-0 text-[10px] text-gray-500 font-semibold pointer-events-none uppercase tracking-wider">
+                        Maximum Enjoyment</div>
+                    <div
+                        class="absolute bottom-2 left-0 right-0 text-[10px] text-gray-500 font-semibold pointer-events-none uppercase tracking-wider">
+                        Neutral</div>
+                    <div
+                        class="absolute top-1/2 left-2 transform -translate-y-1/2 text-[10px] text-gray-500 font-semibold pointer-events-none uppercase tracking-wider">
+                        Relaxed</div>
+                    <div
+                        class="absolute top-1/2 right-2 transform -translate-y-1/2 text-[10px] text-gray-500 font-semibold pointer-events-none uppercase tracking-wider">
+                        Focused</div>
+
+                    <!-- Draggable Handle -->
+                    <div id="pad-handle"
+                        class="absolute w-6 h-6 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-full border-2 border-white shadow-lg cursor-grab active:cursor-grabbing transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform duration-75"
+                        style="left: 50%; top: 100%;"></div>
+                </div>
+
+                <span class="text-[10px] text-slate-400 mt-4 block leading-normal">Drag the indicator to shift your
+                    state. Bottom represents neutral calm, sliding left moves to relaxed, and sliding right moves to
+                    focused.</span>
+            </div>
+
+            <!-- Stream Status Title -->
+            <div class="mt-8 text-white w-full">
+                <h3 id="status-title" class="text-xl font-semibold text-slate-300">Offline</h3>
+            </div>
+
+            <!--Recently Played Suggestions List-->
+            <div class="mt-8 text-white w-full max-w-md mx-auto">
+                <h4
+                    class="text-md font-bold mb-3 border-b border-slate-800 pb-2 uppercase tracking-wider text-slate-400 text-xs text-left">
+                    Suggestions Timeline</h4>
+                <div id="song-list" class="grid grid-cols-1 gap-2 text-left">
+                    <div class="text-gray-500 text-center py-4 bg-slate-900/30 rounded-xl border border-slate-900">No
+                        suggestions generated yet.</div>
+                </div>
             </div>
         </div>
 
         <script>
+            // Fallback config logic in case backend config endpoint is requested
             const API_BASE = window.location.origin.includes('5005')
                 ? window.location.origin
                 : 'http://127.0.0.1:5005';
 
-            let pollingInterval = null;
             let config = null;
             let currentSessionId = null;
+            let pollingInterval = null;
 
-            // Fetch config dynamic parameters from server
+            // Coordinate dragging state
+            let isDragging = false;
+            let currentX = 50; // left percentage (Pleasure)
+            let currentY = 0;  // bottom percentage (Arousal)
+
+            // Instantiate client-side Neural Recommendation Engine
+            const mlEngine = new BrainDJEngine();
+
+            // Client-side stream state
+            let streamState = {
+                status: 'stopped', // stopped, initializing, running, completing, error
+                message: 'Offline',
+                current_song: null,
+                playlist_id: null,
+                recently_played: [],
+                count: 15,
+                queued_for_track_id: null
+            };
+
+            // Fetch backend config dynamically
             async function fetchConfig() {
                 if (config) return config;
                 try {
@@ -97,13 +186,15 @@
                     config = await res.json();
                     return config;
                 } catch (err) {
-                    console.error("Failed to load backend config:", err);
-                    alert("Could not connect to the Brain DJ backend server at " + API_BASE + ". Please make sure your python backend server is running!");
-                    throw err;
+                    console.warn("Could not connect to backend server config, falling back to static settings:", err);
+                    return {
+                        spotify_client_id: '83838f0d51524cec9ef8a3d89b054a23',
+                        spotify_redirect_uri: window.location.origin + window.location.pathname
+                    };
                 }
             }
 
-            // PKCE Helpers
+            // PKCE Handshake Cryptography Helpers
             function dec2hex(dec) {
                 return ('0' + dec.toString(16)).substr(-2);
             }
@@ -138,7 +229,7 @@
                 return base64urlencode(hashed);
             }
 
-            // Token Management & Dynamic Refresh
+            // Token Management & Auto-Refresh
             async function getValidToken() {
                 const accessToken = localStorage.getItem('spotify_access_token');
                 const refreshToken = localStorage.getItem('spotify_refresh_token');
@@ -148,7 +239,6 @@
                     return null;
                 }
 
-                // If token expires in less than 5 minutes, refresh it client-side
                 if (Date.now() > parseInt(expiresAt) - 5 * 60 * 1000) {
                     try {
                         const cfg = await fetchConfig();
@@ -182,7 +272,7 @@
                 return accessToken;
             }
 
-            // Fetch User profile to establish unique session id
+            // Get Spotify Profile for session naming
             async function fetchSpotifyUserProfile(token) {
                 try {
                     const res = await fetch('https://api.spotify.com/v1/me', {
@@ -199,7 +289,7 @@
                 }
             }
 
-            // Handle callback from Spotify auth redirect
+            // Exchanging Auth Code for access tokens
             async function handleRedirectCallback(code) {
                 const codeVerifier = sessionStorage.getItem('spotify_code_verifier');
                 if (!codeVerifier) {
@@ -240,7 +330,7 @@
                 }
             }
 
-            // Check if authenticated on load
+            // Update visible auth buttons
             async function checkAuthStatus() {
                 const token = await getValidToken();
                 const btnConnect = document.getElementById('connect-button-control');
@@ -254,26 +344,29 @@
                     if (btnConnect) btnConnect.classList.add('hidden');
                     if (btnStart) btnStart.classList.remove('hidden');
 
-                    if (statusTitle && statusTitle.textContent.startsWith("Please connect")) {
+                    if (statusTitle && streamState.status === 'stopped') {
                         statusTitle.textContent = `Connected as ${displayName} (Offline)`;
                     }
-                    startPolling();
                 } else {
                     if (btnConnect) btnConnect.classList.remove('hidden');
                     if (btnStart) btnStart.classList.add('hidden');
                     if (statusTitle) statusTitle.textContent = "Please connect to Spotify first";
-                    stopPolling();
+                    if (streamState.status !== 'stopped') {
+                        stopStream();
+                    } else {
+                        streamState.message = "Please connect to Spotify first";
+                    }
                 }
             }
 
-            // Connect button listener
+            // Spotify authorize click handler
             const btnConnect = document.getElementById('connect-button-control');
             if (btnConnect) {
                 btnConnect.addEventListener('click', async () => {
                     try {
                         const cfg = await fetchConfig();
                         if (!cfg.spotify_client_id || !cfg.spotify_redirect_uri) {
-                            alert("Backend config is missing Spotify Client ID or Redirect URI.");
+                            alert("Config parameters are missing.");
                             return;
                         }
 
@@ -298,46 +391,308 @@
                 });
             }
 
-            // Start/Stop button listener
+            // Setup 2D Coordinate Drag Pad Logic
+            const padContainer = document.getElementById('pad-container');
+            const padHandle = document.getElementById('pad-handle');
+            const arousalVal = document.getElementById('arousal-val');
+            const pleasureVal = document.getElementById('pleasure-val');
+
+            function updatePadCoordinates(clientX, clientY) {
+                const rect = padContainer.getBoundingClientRect();
+                let x = (clientX - rect.left) / rect.width;
+                let y = (clientY - rect.top) / rect.height;
+
+                // Clamp coordinates inside the pad container
+                x = Math.max(0, Math.min(1, x));
+                y = Math.max(0, Math.min(1, y));
+
+                // Convert to values matching Arousal and Pleasure (X represents Pleasure, Y represents Arousal)
+                currentX = Math.round(x * 100);
+                currentY = Math.round((1 - y) * 100); // Bottom = 0, Top = 100
+
+                // Move dot handle
+                padHandle.style.left = `${x * 100}%`;
+                padHandle.style.top = `${y * 100}%`;
+
+                // Update text readout
+                arousalVal.textContent = `${currentY}%`;
+                pleasureVal.textContent = `${currentX}%`;
+            }
+
+            padContainer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                updatePadCoordinates(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                updatePadCoordinates(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Touch events for mobile screens
+            padContainer.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                const touch = e.touches[0];
+                updatePadCoordinates(touch.clientX, touch.clientY);
+                e.preventDefault();
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                updatePadCoordinates(touch.clientX, touch.clientY);
+            });
+
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+
+            // Start/Stop stream click handler
             const btnControl = document.getElementById('start-button-control');
             btnControl.addEventListener('click', async () => {
-                const isRunning = btnControl.dataset.running == 'true';
+                if (streamState.status === 'stopped') {
+                    await startStream();
+                } else {
+                    await stopStream();
+                }
+            });
+
+            // Start Stream
+            async function startStream() {
+                const token = await getValidToken();
+                if (!token) {
+                    await checkAuthStatus();
+                    return;
+                }
+
+                streamState.status = 'initializing';
+                streamState.message = 'Initializing Playlist...';
+                streamState.recently_played = [];
+                streamState.current_song = null;
+                streamState.playlist_id = null;
+                streamState.count = 15;
+                streamState.queued_for_track_id = null;
+                updateUI();
 
                 try {
-                    const token = await getValidToken();
-                    const refreshToken = localStorage.getItem('spotify_refresh_token');
-                    if (!token) {
-                        await checkAuthStatus();
+                    // 1. Get currently playing track
+                    let firstSongUri = null;
+                    let currentTrackName = null;
+                    let currentTrackArtist = null;
+
+                    const activeRes = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (activeRes.status === 200) {
+                        const trackInfo = await activeRes.json();
+                        if (trackInfo && trackInfo.is_playing) {
+                            currentTrackName = trackInfo.item.name;
+                            currentTrackArtist = trackInfo.item.artists[0].name;
+                            // Search track URI
+                            const query = `track:${currentTrackName} artist:${currentTrackArtist}`;
+                            const searchRes = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=track&limit=1`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (searchRes.ok) {
+                                const searchData = await searchRes.json();
+                                const items = searchData.tracks.items;
+                                if (items.length > 0) {
+                                    firstSongUri = items[0].uri;
+                                    streamState.recently_played.push(`${currentTrackName} - ${currentTrackArtist}`);
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Create Spotify Playlist for the Session
+                    const userId = localStorage.getItem('spotify_user_id');
+                    const playlistRes = await fetch(`https://api.spotify.com/v1/users/${userId}/playlists`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: `Your Stream #${userId.substring(0, 4)}`,
+                            description: 'Brought to you by the Decoded Brain at UC San Diego. Your Stream is generated client-side.',
+                            public: false
+                        })
+                    });
+
+                    if (playlistRes.ok) {
+                        const playlistData = await playlistRes.json();
+                        streamState.playlist_id = playlistData.id;
+
+                        // Add first song to playlist
+                        if (firstSongUri) {
+                            await fetch(`https://api.spotify.com/v1/playlists/${streamState.playlist_id}/tracks`, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ uris: [firstSongUri] })
+                            });
+                        }
+                    }
+
+                    streamState.status = 'running';
+                    streamState.message = 'Running! Custom stream active...';
+                    updateUI();
+
+                    // Start the client-side active polling thread
+                    pollingInterval = setInterval(runClientLoop, 5000);
+                } catch (err) {
+                    console.error("Initialization error:", err);
+                    streamState.status = 'error';
+                    streamState.message = `Init error: ${err.message}`;
+                    updateUI();
+                }
+            }
+
+            // Stop Stream
+            async function stopStream() {
+                if (pollingInterval) {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+                }
+
+                if (streamState.status === 'running' || streamState.status === 'initializing') {
+                    streamState.status = 'completing';
+                    streamState.message = 'Generating Title...';
+                    updateUI();
+
+                    // Procedural Local Title Generator to stay serverless
+                    const playlistTitle = streamState.recently_played.length > 0
+                        ? `Neuroflow Focus Mix #${Math.floor(Math.random() * 900 + 100)}`
+                        : "Your Neuro DJ Stream";
+
+                    try {
+                        const token = await getValidToken();
+                        if (token && streamState.playlist_id) {
+                            await fetch(`https://api.spotify.com/v1/playlists/${streamState.playlist_id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ name: playlistTitle })
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Failed to rename playlist:", e);
+                    }
+                }
+
+                streamState.status = 'stopped';
+                streamState.message = 'Stream finished';
+                updateUI();
+            }
+
+            // Client-side Polling Loop
+            async function runClientLoop() {
+                if (streamState.status !== 'running') return;
+
+                const token = await getValidToken();
+                if (!token) {
+                    await stopStream();
+                    await checkAuthStatus();
+                    return;
+                }
+
+                try {
+                    const res = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.status === 204 || res.status === 404) {
+                        streamState.message = "Spotify is active but paused or no song active.";
+                        updateUI();
                         return;
                     }
 
-                    if (!isRunning) {
-                        const res = await fetch(`${API_BASE}/api/start`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                session_id: currentSessionId,
-                                access_token: token,
-                                refresh_token: refreshToken
-                            })
-                        });
-                        const data = await res.json();
-                        updateUI(data);
-                    } else {
-                        const res = await fetch(`${API_BASE}/api/stop`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                session_id: currentSessionId
-                            })
-                        });
-                        const data = await res.json();
-                        updateUI(data);
+                    if (res.ok) {
+                        const trackInfo = await res.json();
+                        if (trackInfo && trackInfo.is_playing) {
+                            const currentTrackName = trackInfo.item.name;
+                            const currentTrackArtist = trackInfo.item.artists[0].name;
+                            const currentTrackId = trackInfo.item.id;
+                            const songName = `${currentTrackName} - ${currentTrackArtist}`;
+
+                            streamState.current_song = songName;
+                            streamState.message = `Playing: ${songName}`;
+
+                            // Calculate time remaining
+                            const durationMs = trackInfo.item.duration_ms;
+                            const progressMs = trackInfo.progress_ms;
+                            const timeLeftSec = (durationMs - progressMs) / 1000;
+
+                            // Suggest and queue next track if within 25 seconds remaining and not already queued
+                            if (timeLeftSec > 0 && timeLeftSec <= 25 && streamState.queued_for_track_id !== currentTrackId && streamState.count > 0) {
+                                streamState.queued_for_track_id = currentTrackId;
+
+                                if (!streamState.recently_played.includes(songName)) {
+                                    streamState.recently_played.push(songName);
+                                }
+
+                                streamState.message = "Analyzing brain waves and selecting next song...";
+                                updateUI();
+
+                                // Get simulated states from the 2D coordinate pad
+                                const arousal = currentY;
+                                const pleasure = currentX;
+
+                                // Invoke Local ML Recommender SDK
+                                const result = await mlEngine.recommendSong(
+                                    currentTrackName,
+                                    currentTrackArtist,
+                                    arousal,
+                                    pleasure,
+                                    streamState.recently_played,
+                                    10
+                                );
+
+                                if (result.queue && result.queue.length > 0) {
+                                    const nextTrackId = result.queue[0];
+                                    const nextTrackMetadata = result.recommendations[0];
+                                    const recommendedSongName = `${nextTrackMetadata.name} - ${nextTrackMetadata.artist}`;
+
+                                    // Add to Spotify Queue
+                                    await fetch(`https://api.spotify.com/v1/me/player/queue?uri=spotify:track:${nextTrackId}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+
+                                    // Add to Session Playlist
+                                    if (streamState.playlist_id) {
+                                        await fetch(`https://api.spotify.com/v1/playlists/${streamState.playlist_id}/tracks`, {
+                                            method: 'POST',
+                                            headers: {
+                                                'Authorization': `Bearer ${token}`,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ uris: [`spotify:track:${nextTrackId}`] })
+                                        });
+                                    }
+
+                                    streamState.recently_played.push(recommendedSongName);
+                                    streamState.count--;
+                                    streamState.message = `Successfully queued: ${recommendedSongName}`;
+                                }
+                            }
+                        } else {
+                            streamState.message = "Spotify playback is paused.";
+                        }
                     }
                 } catch (err) {
-                    console.error("Failed to execute control:", err);
+                    console.error("Polling loop error:", err);
                 }
-            });
+                updateUI();
+            }
 
             // Update UI list of recently played songs
             function updateHistoryList(songs) {
@@ -348,75 +703,48 @@
                 if (songs && songs.length > 0) {
                     songs.forEach((song) => {
                         const card = document.createElement('div');
-                        card.className = "bg-gray-100 p-4 rounded shadow-sm text-black";
-                        card.textContent = song;
+                        card.className = "bg-slate-900/60 p-4 rounded-xl shadow border border-slate-900 text-white font-medium text-sm flex justify-between items-center";
+                        card.innerHTML = `<span>${song}</span><span class="text-xs text-indigo-400 font-semibold px-2 py-1 bg-indigo-500/10 rounded-full">Suggested</span>`;
                         listContainer.appendChild(card);
                     });
                 } else {
-                    listContainer.innerHTML = '<div class="col-span-2 text-gray-400">No songs suggested yet.</div>';
+                    listContainer.innerHTML = '<div class="text-slate-500 text-center py-4 bg-slate-900/30 rounded-xl border border-slate-900">No suggestions generated yet.</div>';
                 }
             }
 
-            // Update status text and button text
-            function updateUI(state) {
+            // Update UI Elements
+            function updateUI() {
                 const statusTitle = document.getElementById('status-title');
-                btnControl.dataset.running = (state.status === 'running' || state.status === 'initializing');
+                btnControl.dataset.running = (streamState.status === 'running' || streamState.status === 'initializing');
 
                 const btnText = btnControl.querySelector('span');
                 if (btnText) {
-                    btnText.textContent = (state.status === 'stopped') ? "Start your Stream" : "Stop Stream";
+                    btnText.textContent = (streamState.status === 'stopped') ? "Start your Stream" : "Stop Stream";
                 }
 
                 if (statusTitle) {
-                    switch (state.status) {
+                    switch (streamState.status) {
                         case 'stopped':
-                            statusTitle.textContent = "Offline";
+                            statusTitle.textContent = streamState.message;
                             break;
                         case 'initializing':
-                            statusTitle.textContent = "Initializing";
+                            statusTitle.textContent = "Initializing Playlist...";
                             break;
                         case 'running':
-                            statusTitle.textContent = state.current_song ? `Playing: ${state.current_song}` : 'Your Stream has Started';
+                            statusTitle.textContent = streamState.current_song ? `Playing: ${streamState.current_song}` : 'Your Stream has Started';
                             break;
                         case 'completing':
-                            statusTitle.textContent = "Generating Title";
+                            statusTitle.textContent = "Saving playlist session...";
                             break;
                         case 'error':
-                            statusTitle.textContent = `Error: ${state.message}`;
+                            statusTitle.textContent = streamState.message;
                             break;
                     }
                 }
-                updateHistoryList(state.recently_played);
+                updateHistoryList(streamState.recently_played);
             }
 
-            // Poll status loop
-            async function pollStatus() {
-                try {
-                    if (!currentSessionId) return;
-                    const res = await fetch(`${API_BASE}/api/status?session_id=${currentSessionId}`);
-                    if (res.ok) {
-                        const state = await res.json();
-                        updateUI(state);
-                    }
-                } catch (err) {
-                    console.warn("Server is offline:", err);
-                }
-            }
-
-            function startPolling() {
-                if (pollingInterval) return;
-                pollStatus();
-                pollingInterval = setInterval(pollStatus, 1000);
-            }
-
-            function stopPolling() {
-                if (pollingInterval) {
-                    clearInterval(pollingInterval);
-                    pollingInterval = null;
-                }
-            }
-
-            // DOM load sequence
+            // Initialize Page on DOM Loaded
             window.addEventListener('DOMContentLoaded', async () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const code = urlParams.get('code');
@@ -424,7 +752,33 @@
                     window.history.replaceState({}, document.title, window.location.pathname);
                     await handleRedirectCallback(code);
                 }
-                await checkAuthStatus();
+
+                // Initialize client-side SDK loading
+                const progressText = document.getElementById('loading-status-text');
+                const progressBar = document.getElementById('loading-progress-bar');
+                const controlsContainer = document.getElementById('main-controls-container');
+
+                try {
+                    await mlEngine.initialize({
+                        model: 'autoencoder_encoder.onnx',
+                        latent: 'latent_embeddings.bin',
+                        features: 'X_features.bin',
+                        metadata: 'tracks_metadata.json'
+                    }, (statusText, progressVal) => {
+                        if (progressText) progressText.textContent = statusText;
+                        if (progressBar) progressBar.style.width = `${progressVal}%`;
+                    });
+
+                    // Hide loading overlay, reveal main controls on success
+                    document.getElementById('ml-loading-overlay').classList.add('hidden');
+                    if (controlsContainer) controlsContainer.classList.remove('hidden');
+
+                    await checkAuthStatus();
+                } catch (e) {
+                    if (progressText) progressText.textContent = `Failed to load AI assets: ${e.message}`;
+                    if (progressBar) progressBar.classList.add('bg-red-600');
+                    console.error("Model load error:", e);
+                }
             });
         </script>
 </body>
