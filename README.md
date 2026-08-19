@@ -1,29 +1,27 @@
 # Brain DJ Interface: Remixed
 
-Forked from previous Brain DJ Interface initiative
-
-## View the web app here (Still in development) :
-
-[Brain DJ Interface](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
-
-## Open Labs Page :
-
-[Open Labs Initiative Page](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-Remixed-38be37a75f4181ad9660c680b75e65b0?source=copy_link)
-
-# Overview : 
+## Overview : 
 
 This project is the older brother of the first Spotlight Initiative at UC San Diego titled [Brain DJ Interface](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-BDJI-32be37a75f4180ffaac9fbb3034954ab?source=copy_link). The core principle is the same, a music recommendation system piloted by the user's EEG signals, however the main change is the transition from Offline BCI to an Online BCI. Instead of generating playlists of suggested songs, this initiative introduces the Stream where it would add songs to your queue in response to your brain's reaction to the current song you're listening to. For instance, if the Brain DJ Interface senses you're transitioning to a relaxed state, the songs being added to a queue would be similar but slower in tempo. If the songs aren't to your liking, the BDJI will include a Remix button, to switch things up and pivot the Stream to that new song. The ideal outcome is to start a Stream and to listen to a series of songs that's constantly drifting and fluid, like a stream of consciousness.
 
-# Directory :
+### View the web app here (Still in development) :
 
-## backend :
+[Brain DJ Interface](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
+
+### Open Labs Page :
+
+[Open Labs Initiative Page](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-Remixed-38be37a75f4181ad9660c680b75e65b0?source=copy_link)
+
+## Directory :
+
+### backend :
 Contains the notebooks, tools, src folders that powers the Brain DJ Interface: Remixed
 
-## frontend : 
+### frontend : 
 Contains the app and media folders that present the Brain DJ Interface: Remixed
 
 
-# References:
+## References:
 
 [1] Starcke K, Mayr J, von Georgi R. Emotion Modulation through Music after Sadness Induction-The Iso Principle in a Controlled Experimental Study. Int J Environ Res Public Health. 2021 Nov 26;18(23):12486. doi: 10.3390/ijerph182312486. PMID: 34886210; PMCID: PMC8656869. https://pmc.ncbi.nlm.nih.gov/articles/PMC8656869/
 
