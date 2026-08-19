@@ -23,11 +23,11 @@ Contains the app and media folders that present the Brain DJ Interface: Remixed
 
 # References:
 
-[1] Starcke K, Mayr J, von Georgi R. Emotion Modulation through Music after Sadness Induction-The Iso Principle in a Controlled Experimental Study. Int J Environ Res Public Health. 2021 Nov 26;18(23):12486. doi: 10.3390/ijerph182312486. PMID: 34886210; PMCID: PMC8656869.
+[1] Starcke K, Mayr J, von Georgi R. Emotion Modulation through Music after Sadness Induction-The Iso Principle in a Controlled Experimental Study. Int J Environ Res Public Health. 2021 Nov 26;18(23):12486. doi: 10.3390/ijerph182312486. PMID: 34886210; PMCID: PMC8656869. https://pmc.ncbi.nlm.nih.gov/articles/PMC8656869/
 
-[2] Ye Y, Zhu X, Li Y, Pan T, He W. Cross-subject EEG-based Emotion Recognition Using Adversarial Domain Adaption with Attention Mechanism. Annu Int Conf IEEE Eng Med Biol Soc. 2021 Nov;2021:1140-1144. doi: 10.1109/EMBC46164.2021.9630777. PMID: 34891489.
+[2] Ye Y, Zhu X, Li Y, Pan T, He W. Cross-subject EEG-based Emotion Recognition Using Adversarial Domain Adaption with Attention Mechanism. Annu Int Conf IEEE Eng Med Biol Soc. 2021 Nov;2021:1140-1144. doi: 10.1109/EMBC46164.2021.9630777. PMID: 34891489. https://pubmed.ncbi.nlm.nih.gov/34891489/
 
-[3] Wei-Long Zheng, and Bao-Liang Lu, Investigating Critical Frequency Bands and Channels for EEG-based Emotion Recognition with Deep Neural Networks, accepted by IEEE Transactions on Autonomous Mental Development (IEEE TAMD) 7(3): 162-175, 2015. [link] [BibTex]
+[3] Wei-Long Zheng, and Bao-Liang Lu, Investigating Critical Frequency Bands and Channels for EEG-based Emotion Recognition with Deep Neural Networks, accepted by IEEE Transactions on Autonomous Mental Development (IEEE TAMD) 7(3): 162-175, 2015. https://www.researchgate.net/publication/276443876_Investigating_Critical_Frequency_Bands_and_Channels_for_EEG-Based_Emotion_Recognition_with_Deep_Neural_Networks
 
 [4] Ruo-Nan Duan, Jia-Yi Zhu and Bao-Liang Lu, Differential Entropy Feature for EEG-based Emotion Classification, Proc. of the 6th International IEEE EMBS Conference on Neural Engineering (NER). 2013: 81-84. https://bcmi.sjtu.edu.cn/home/zhujiayi/pdf/NER2013.pdf)
 
