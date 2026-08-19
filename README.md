@@ -2,7 +2,7 @@
 
 Forked from previous Brain DJ Interface initiative
 
-## View the web app here 
+## View the web app here (Still in development) :
 
 [Brain DJ Interface](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
 
