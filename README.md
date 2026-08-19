@@ -1,4 +1,4 @@
-# BDJI: Remixed Directory
+# Brain DJ Interface: Remixed
 
 Forked from previous Brain DJ Interface initiative
 
@@ -10,9 +10,11 @@ Forked from previous Brain DJ Interface initiative
 
 [Open Labs Initiative Page](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-Remixed-38be37a75f4181ad9660c680b75e65b0?source=copy_link)
 
-## Overview : 
+# Overview : 
 
 This project is the older brother of the first Spotlight Initiative at UC San Diego titled [Brain DJ Interface](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-BDJI-32be37a75f4180ffaac9fbb3034954ab?source=copy_link). The core principle is the same, a music recommendation system piloted by the user's EEG signals, however the main change is the transition from Offline BCI to an Online BCI. Instead of generating playlists of suggested songs, this initiative introduces the Stream where it would add songs to your queue in response to your brain's reaction to the current song you're listening to. For instance, if the Brain DJ Interface senses you're transitioning to a relaxed state, the songs being added to a queue would be similar but slower in tempo. If the songs aren't to your liking, the BDJI will include a Remix button, to switch things up and pivot the Stream to that new song. The ideal outcome is to start a Stream and to listen to a series of songs that's constantly drifting and fluid, like a stream of consciousness.
+
+# Directory :
 
 ## backend :
 Contains the notebooks, tools, src folders that powers the Brain DJ Interface: Remixed
