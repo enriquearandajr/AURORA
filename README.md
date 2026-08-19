@@ -29,7 +29,7 @@ Contains the app and media folders that present the Brain DJ Interface: Remixed
 
 [3] Wei-Long Zheng, and Bao-Liang Lu, Investigating Critical Frequency Bands and Channels for EEG-based Emotion Recognition with Deep Neural Networks, accepted by IEEE Transactions on Autonomous Mental Development (IEEE TAMD) 7(3): 162-175, 2015. [link] [BibTex]
 
-[4] Ruo-Nan Duan, Jia-Yi Zhu and Bao-Liang Lu, Differential Entropy Feature for EEG-based Emotion Classification, Proc. of the 6th International IEEE EMBS Conference on Neural Engineering (NER). 2013: 81-84. [[link] [BibTex]](https://bcmi.sjtu.edu.cn/home/zhujiayi/pdf/NER2013.pdf)
+[4] Ruo-Nan Duan, Jia-Yi Zhu and Bao-Liang Lu, Differential Entropy Feature for EEG-based Emotion Classification, Proc. of the 6th International IEEE EMBS Conference on Neural Engineering (NER). 2013: 81-84. https://bcmi.sjtu.edu.cn/home/zhujiayi/pdf/NER2013.pdf)
 
 [5] Trost, Wiebke, et al. "Live music stimulates the affective brain and emotionally entrains listeners in real time." *Proceedings of the National Academy of Sciences*, vol. 121, no. 10, 2024, p. e2316306121. https://doi.org/10.1073/pnas.2316306121
 
