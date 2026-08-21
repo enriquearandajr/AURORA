@@ -1,5 +1,2 @@
 # media :
-Contains the Demo and pictures of the project
-
-
-## Demo: 
+Contains the Decoded Brain logo to add as cover art for the created Spotify playlist
