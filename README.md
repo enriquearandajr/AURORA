@@ -1,4 +1,4 @@
-# Brain DJ Interface: Remixed
+# AURORA: Affective User Recommendation Optimized for Real-time Audio
 
 ## Overview : 
 
@@ -6,7 +6,7 @@ This project is the older brother of the first Spotlight Initiative at UC San Di
 
 ### View the web app here (Still in development) :
 
-[Brain DJ Interface](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
+[AURORA](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
 
 ### Open Labs Page :
 
@@ -15,10 +15,10 @@ This project is the older brother of the first Spotlight Initiative at UC San Di
 ## Directory :
 
 ### backend :
-Contains the notebooks, tools, src folders that powers the Brain DJ Interface: Remixed
+Contains the notebooks, tools, src folders that powers the AURORA system
 
 ### frontend : 
-Contains the app and media folders that present the Brain DJ Interface: Remixed
+Contains the app and media folders that present AURORA
 
 
 ## References:
