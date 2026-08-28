@@ -118,7 +118,7 @@ def spotify_playlist_creation():
     return new_playlist["id"]
 
 def run_stream(status_callback=None, stop_event=None):
-    global count, recently_played, time_left, stream_id, stream_is_playing
+    global count, recently_played, time_left, stream_id, stream_is_playing, arousal
 
     # reset variables for new Stream
     count = 15
@@ -127,8 +127,10 @@ def run_stream(status_callback=None, stop_event=None):
     stream_id = ""
     stream_is_playing=True # to control Stream
     queued_for_track_id = None 
+
+    # initialize global arousal variable
     arousal = 50
-    pleasure = 75
+    pleasure = 100 # hardcoded to 100 for now
 
     if status_callback:
         status_callback({
