@@ -59,6 +59,23 @@
             <h3 id="status-title" class="text-xl font-semibold">Offline</h3>
         </div>
 
+        <!-- Arousal Contorl Slider-->
+        <div
+            class="mt-8 text-white w-full max-w-lg bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-lg">
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="text-lg font-bold tracking-wide">Arousal State</h4>
+                <span class="text-sm bg-purple-500/20 text-white px-3 py-0.5 rounded-full font-bold">
+                    <span id="arousal-value">50</span>%
+                </span>
+            </div>
+            <input type="range" id="arousal-slider" min="0" max="100" value="50"
+                class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500">
+            <div class="flex justify-between text-xs text-gray-400 mt-2">
+                <span>Relaxed</span>
+                <span>Focused</span>
+            </div>
+        </div>
+
         <!--Recently Played-->
         <div class="mt-8 text-white w-full max-w-lg">
             <h4 class="text-lg font-bold mb-3 border-b border-gray-700 pb-2">Your Stream</h4>
@@ -96,6 +113,28 @@
                     console.error("Failed to execute control:", err);
                 }
 
+            });
+
+            // Arousal slider control
+            const arousalSlider = document.getElementById('arousal-slider');
+            const arousalValueDisplay = document.getElementById('arousal-value');
+
+            // update UI text immediately as they drag
+            arousalSlider.addEventListener('input', (e) => { arousalValueDisplay.textContent = e.target.value; });
+            // send update to backend
+            arousalSlider.addEventListener('change', async (e) => {
+                const val = parseInt(e.target.value);
+                try {
+                    const res = await fetch(`${API_BASE}/api/update_arousal`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ arousal: val })
+                    });
+                    const data = await res.json();
+                    console.log("Updated arousal on server:", data);
+                } catch (err) {
+                    console.error("Failed to update arousal:", err);
+                }
             });
 
 
@@ -180,6 +219,11 @@
                 // update recently played list
                 updateHistoryList(state.recently_played);
 
+                // sync slider value from server status unless user is actively dragging it
+                if (state.arousal != undefined && document.activeElement !== arousalSlider) {
+                    arousalSlider.value = state.arousal;
+                    arousalValueDisplay.textContent = state.arousal;
+                }
 
             }
 

@@ -10,7 +10,8 @@ state = {
     "message": "Server is ready...",
     "recently_played": [],
     "current_song": None,
-    "playlist_id": None
+    "playlist_id": None,
+    "arousal": 50
 }
 
 state_lock = threading.Lock()
@@ -111,6 +112,30 @@ class DJBrain(BaseHTTPRequestHandler):
             self.end_headers()
             with state_lock:
                 self.wfile.write(json.dumps(state).encode('utf-8'))
+        
+        # Block to update arousal
+        elif self.path == '/api/update_arousal':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode('utf-8'))
+                new_arousal = int(data.get('arousal',50))
+
+                # update shared state and global main.arousal
+                import main
+                with state_lock:
+                    main.arousal = new_arousal
+                    state['arousal'] = new_arousal
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"success":True, "arousal":new_arousal}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
 
         else:
             self.send_response(404)
