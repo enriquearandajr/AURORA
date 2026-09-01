@@ -1,6 +1,6 @@
 # AURORA: Affective User Recommendation Optimized for Real-time Audio
 
-## Overview : 
+## Overview  
 
 ### Premise : 
 
@@ -15,7 +15,7 @@ The user opens the AURORA app and connects their Spotify Premium account to be a
 
 [AURORA](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
 
-## Directory :
+## Directory 
 
 ### backend :
 Contains the notebooks, tools, src folders that powers the AURORA system
@@ -24,7 +24,7 @@ Contains the notebooks, tools, src folders that powers the AURORA system
 Contains the app and media folders that present AURORA
 
 
-## References:
+## References
 
 [1] Starcke K, Mayr J, von Georgi R. Emotion Modulation through Music after Sadness Induction-The Iso Principle in a Controlled Experimental Study. Int J Environ Res Public Health. 2021 Nov 26;18(23):12486. doi: 10.3390/ijerph182312486. PMID: 34886210; PMCID: PMC8656869. https://pmc.ncbi.nlm.nih.gov/articles/PMC8656869/
 
