@@ -1,27 +1,30 @@
-# Brain DJ Interface: Remixed
+# AURORA: Affective User Recommendation Optimized for Real-time Audio
 
-## Overview : 
+## Overview  
 
-This project is the older brother of the first Spotlight Initiative at UC San Diego titled [Brain DJ Interface](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-BDJI-32be37a75f4180ffaac9fbb3034954ab?source=copy_link). The core principle is the same, a music recommendation system piloted by the user's EEG signals, however the main change is the transition from Offline BCI to an Online BCI. Instead of generating playlists of suggested songs, this initiative introduces the Stream where it would add songs to your queue in response to your brain's reaction to the current song you're listening to. For instance, if the Brain DJ Interface senses you're transitioning to a relaxed state, the songs being added to a queue would be similar but slower in tempo. If the songs aren't to your liking, the BDJI will include a Remix button, to switch things up and pivot the Stream to that new song. The ideal outcome is to start a Stream and to listen to a series of songs that's constantly drifting and fluid, like a stream of consciousness.
+### Premise : 
+
+Imagine a music-listening session where the next song is added to your queue based on your current cognitive state, without ever touching the keyboard. 
+
+### Pipeline :
+
+The user opens the AURORA app and connects their Spotify Premium account to be able to modify their queue and create a playlist in their account. Then, the user starts their Stream by selecting a song that matches their mood from a dataset of 50,000 songs which will create a new playlist in the user’s Spotify account with that song. They will wear a dry-electrode, non-invasive EEG cap that would records their EEG data while they listen to the song of their choice. Their EEG data will be removed of any artifacts, such as eye blinks or jaw clenches, and filtered in real-time and then fed into a cognitive state classifier model. This classifier will rate the incoming EEG data as “relaxed” or “focused”, in a scale from 0-100 where 0 is relaxed and 100 is focused. This arousal rating is one of the parameters to my custom music recommendation system, alongside the current song name, artist, and features. The features of the current song are found in that 50,000-song dataset, including danceability, energy, loudness, valence, tempo, and tags such as ‘calm’, ‘rock’, ‘joyful’. These features of the song are then normalized and nudged into the direction dictated by the user’s current mood through a series of algebraic computations, such as reducing the energy and loudness values if the user is in a relaxed state. After the computations, we take these new ideal features for our next song and encode them into a concentrated 16-dimensional embedding in latent space to be compared with the other songs in the dataset. This is done by comparing the cosine similarity between the latent embeddings and finds the top-k songs that are similar to the ideal features of the next song we’re looking for. We then decode the embedding of the features of the top song and query the Spotify ID from the 50,000-song dataset to add to our queue before the current song ends. The app also adds the upcoming song into the new playlist created for the session and this entire process will repeat over and over until the user stops their Stream, effectively creating a neurofeedback loop based on music.
+
 
 ### View the web app here (Still in development) :
 
-[Brain DJ Interface](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
+[AURORA](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
 
-### Open Labs Page :
-
-[Open Labs Initiative Page](https://app.notion.com/p/decoded-brain/Brain-DJ-Interface-Remixed-38be37a75f4181ad9660c680b75e65b0?source=copy_link)
-
-## Directory :
+## Directory 
 
 ### backend :
-Contains the notebooks, tools, src folders that powers the Brain DJ Interface: Remixed
+Contains the notebooks, tools, src folders that powers the AURORA system
 
 ### frontend : 
-Contains the app and media folders that present the Brain DJ Interface: Remixed
+Contains the app and media folders that present AURORA
 
 
-## References:
+## References
 
 [1] Starcke K, Mayr J, von Georgi R. Emotion Modulation through Music after Sadness Induction-The Iso Principle in a Controlled Experimental Study. Int J Environ Res Public Health. 2021 Nov 26;18(23):12486. doi: 10.3390/ijerph182312486. PMID: 34886210; PMCID: PMC8656869. https://pmc.ncbi.nlm.nih.gov/articles/PMC8656869/
 
