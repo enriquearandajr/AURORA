@@ -2,6 +2,8 @@
 
 ## Overview : 
 
+### Premise : 
+
 Imagine a music-listening session where the next song is added to your queue based on your current cognitive state, without ever touching the keyboard. 
 
 ### Pipeline :
