@@ -13,7 +13,7 @@ The user opens the AURORA app and connects their Spotify Premium account to be a
 
 ### View the web app here (Still in development) :
 
-[AURORA](https://enriquearandajr.github.io/Brain-DJ-Interface-Remixed/)
+[AURORA](https://enriquearandajr.github.io/AURORA/)
 
 ## Directory 
 
